@@ -1,0 +1,895 @@
+---
+title: "ISYE6414 - HW4 - Data Analysis"
+output:
+  html_document: default
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Remote work trends analysis
+
+For this homework, you will be building logistic regression models to predict whether an employee prefers remote work post pandemic based on various predictors.
+
+The "remote_work_trends.csv" data set consists of the following variables:
+
+**Age**: Age of the employee (Quantitative)
+
+**Gender**: Gender of the employee (Qualitative)
+
+**Country**: Country of residence (Qualitative)
+
+**JobRole**: Job role of the employee (Qualitative)
+
+**ExperienceYears**: Years of experience in the current job role (Quantitative)
+
+**RemoteWorkHoursPerWeek**: Average number of hours worked remotely per week (Quantitative)
+
+**JobSatisfaction**: Job satisfaction level on a scale of 1-10 (Quantitative)
+
+**TechToolsUsed**: Number of different tech tools used for remote work (Quantitative)
+
+**CompanySize**: Size of the company (small, medium, large) (Qualitative)
+
+**Salary**: Monthly salary in USD (Quantitative)
+
+**ProductivityLevel**: Self-reported productivity level (low, medium, high) (Qualitative)
+
+**MentalHealthImpact**: Self-reported impact on mental health (positive, neutral, negative) (Qualitative)
+
+**RemoteWorkPreference**: This is the response variable. It indicates the preference for remote work post-pandemic [yes(1), no(0)] (Qualitative)
+
+**NOTE**: Use the dataset 'trainData' for all the questions unless otherwise stated in that question.
+
+Read the data and answer the questions below:
+
+```{r}
+set.seed(100) #this seed has been set to 100 to ensure results are reproducible. DO NOT CHANGE THIS SEED
+Remotework = read.csv("/Users/gracehoopingarner/Documents/School/remote_work_trends.csv", header=TRUE, na.strings = "") #reads data
+
+#Remove any potential trailing white space from column names
+names(Remotework) <- trimws(names(Remotework), which = "right")
+
+#converting some variables to factor
+Remotework$Gender = as.factor(Remotework$Gender)
+Remotework$Country = as.factor(Remotework$Country)
+Remotework$JobRole = as.factor(Remotework$JobRole)
+Remotework$CompanySize = as.factor(Remotework$CompanySize)
+Remotework$ProductivityLevel = as.factor(Remotework$ProductivityLevel)
+Remotework$MentalHealthImpact = as.factor(Remotework$MentalHealthImpact)
+Remotework$RemoteWorkPreference = as.factor(ifelse(Remotework$RemoteWorkPreference == 'yes', 1, 0))
+
+#Dividing the dataset into training and testing datasets
+testRows = sample(nrow(Remotework),0.2*nrow(Remotework))
+testData = Remotework[testRows, ]
+trainData = Remotework[-testRows, ]
+row.names(trainData) <- NULL
+head(trainData) #display train data
+```
+
+## Question 1: Data Exploration (5 total points)
+
+**For this question, use the trainData.**
+
+**(1a) (2 points) Create well-labeled stacked bar plots for the variables below that shows the proportion of remote work preference by country, ensuring the proportions range from 0 to 1.0 and each bar reaches 1.0. Calculate the proportions so that each country’s total responses are used as the denominator. Customize the plot with appropriate labels, colors, and include a legend. The proportion of people who prefer remote work must be in brown color, and the proportion of people who do not prefer remote work must be in blue color:**
+
+**i) Country ii) JobRole.**
+
+**Make sure the proportion of the response variable "RemoteWorkPreference" is on the y-axis and the categorical variables on the x-axis.**
+
+```{r}
+# Prroportions for country
+library(dplyr)
+proportion_country <- trainData %>%
+  group_by(Country, RemoteWorkPreference) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  mutate(prop = count / sum(count))
+
+# Proportions for job role
+proportion_jobrole <- trainData %>%
+  group_by(JobRole, RemoteWorkPreference) %>%
+  summarise(count = n(), .groups = "drop") %>%
+  mutate(prop = count / sum(count))
+
+# Country stacked bar chart
+library(ggplot2)
+ggplot(proportion_country, aes(x = Country, y = prop, fill = as.factor(RemoteWorkPreference))) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c("0" = "blue", "1" = "brown"), 
+                    labels = c("0 (No)", "1 (Yes)")) +
+  labs(
+    title = "Proportion of Remote Work Preference by Country",
+    x = "Country",
+    y = "Proportion",
+    fill = "Remote Work Preference"
+  ) +
+  theme_minimal()
+
+# JobRole stacked bar chart
+ggplot(proportion_jobrole, aes(x = JobRole, y = prop, fill = as.factor(RemoteWorkPreference))) +
+  geom_bar(stat = "identity") +
+  scale_fill_manual(values = c("0" = "blue", "1" = "brown"), 
+                    labels = c("0 (No)", "1 (Yes)")) +
+  labs(
+    title = "Proportion of Remote Work Preference by JobRole",
+    x = "Job Role",
+    y = "Proportion",
+    fill = "Remote Work Preference"
+  ) +
+  theme_minimal()
+
+```
+
+**Response to Q1a** 
+
+
+**(1b) (3 points) What percentage of people in marketing prefer remote work? What is the mean and standard deviation of the age of the people in marketing who prefer remote work?**
+
+```{r}
+marketing_coef <- trainData %>% filter(JobRole == "Marketing")
+
+total_job_marketing <- nrow(marketing_coef) 
+total_remote_prefer <- sum(marketing_coef$RemoteWorkPreference == 1)
+remote_percentage <- (total_remote_prefer / total_job_marketing) * 100
+
+# Mean and std dev of age of marketing ppl who prefer remote
+marketing_remote <- marketing_coef %>% filter(RemoteWorkPreference == 1)
+mean_age <- mean(marketing_remote$Age, na.rm = TRUE)
+sd_age <- sd(marketing_remote$Age, na.rm = TRUE)
+
+cat("Percentage of people in Marketing who prefer remote work:", remote_percentage, "%\n")
+cat("Mean age of people in Marketing who prefer remote work:", mean_age, "\n")
+cat("Standard deviation of age of people in Marketing who prefer remote work:", sd_age, "\n")
+
+```
+
+**Response to Q1b**
+
+Percentage of people in Marketing who prefer remote work: 14.70588 %
+Mean age of people in Marketing who prefer remote work: 43.15 
+Standard deviation of age of people in Marketing who prefer remote work: 12.71665 
+
+## Question 2: Model Building (7 total points)
+
+**For this question, use the trainData.**
+
+**(2ai) (1 point) Fit a logistic regression model using all of the predicting variables. Display the summary for the model. Call it *full_model*.**
+
+```{r}
+full_model <- glm(RemoteWorkPreference ~ ., data = trainData, family = binomial)
+summary(full_model)
+```
+
+**(2aii) (1 point) Using only the summary output for full_model, is the model with all the predictors better at predicting the response than a model with just an intercept term? Explain your reasoning.**
+
+**Response to Q2aii** 
+
+Yes, the model with all the predictors is better at predicting the response variable (RemoteWorkPreference) than the model with just an intercept term. The significant reduction in deviance (from 786.58 to 413.08) indicates that adding predictors improves the model's ability to explain variation in the response variable.
+
+**2b) (1 point) Give an interpretation of the coefficient of the following predictors with respect to both the log-odds and also the odds of preferring remote work.**
+
+**i) RemoteWorkHoursPerWeek    ii) CompanySizesmall**
+
+**Response to Q2b** 
+
+For RemoteWorkHoursPerWeek, individuals who already work remotely for more hours are significantly more likely to prefer remote work, as evidenced by the ~6% increase in odds for each additional hour.
+
+For CompanySizesmall, individuals working in small companies are slightly less likely to prefer remote work, with an ~11% decrease in odds compared to those working in large companies.
+
+**2c) (2 points) Is the coefficient of "Salary" statistically significant at 0.01 significance level?**
+
+**i) State the Null and alternative hypotheses**
+
+**ii) State the sampling distribution that the test statistic follows and describe the approach of how to determine the statistical significance of the coefficient**
+
+**Response to Q2c**
+
+i) Null Hypothesis: "Salary" has no effect on the log-odds of preferring remote work ($\beta_{salary}=0$). 
+
+Alternative Hypothesis: "Salary" has a statistically significant effect on the log-odds of preferring remote work ($\beta_{salary}\ne 0$)
+
+ii) The test statistics follows a standard normal distribution ($N(0,1)$). Considering that $p = 0.3004 > 0.01$, it's fair to conclude that the "Salary" variable is not statistically significant. 
+
+**2d) (2 points) *Decision tree model***
+
+**i) Fit/train a Decision Tree model, call it *decision_tree_model*, and display the summary of the model.**
+
+**For this question, use the trainData.**
+**Note: Use metric = "Accuracy", trControl = trainControl(method="cv", number=3).**
+
+**ii) State the mean accuracy for the model.**
+
+```{r}
+library(caret)
+library(rpart)
+
+decision_tree_model <- train(
+  RemoteWorkPreference ~ ., 
+  data = trainData, 
+  method = "rpart", 
+  metric = "Accuracy", 
+  trControl = trainControl(method = "cv", number=3)
+)
+
+print(decision_tree_model)
+
+mean_accuracy <- max(decision_tree_model$results$Accuracy)
+
+cat("The mean accuracy for the decision tree model is:", mean_accuracy, "\n")
+
+```
+
+## Question 3: Variable Selection (12 points)
+
+**For this question, use the trainData.**
+
+For this question, use the dataset "trainData" and apply forward and backward stepwise regression methods to determine the most relevant variables for the model.
+
+-   For forward stepwise, call the model stepwise_forward, which start with no predictors in the model and add predictors based on the AIC criterion.
+-   For backward stepwise, call the model stepwise_backward, which start with all predictors in the model and remove them stepwise based on the AIC criterion.
+
+Provide the model summary of the models selected in both stepwise processes, selected variables, AIC, and BIC of each selected model.
+
+**3a) (2 points) Forward Stepwise Regression**
+
+```{r}
+# Interceot only model
+null_model <- glm(RemoteWorkPreference ~ 1, data = trainData, family = binomial)
+
+# Forward stepwise
+stepwise_forward <- step(
+  null_model, 
+  scope = list(lower = ~ 1, upper = ~ . - 1), 
+  direction = "forward"
+)
+
+summary(stepwise_forward)
+```
+
+**3ai) (1 point) What are the selected variables, AIC, and BIC of Forward Stepwise model?**
+
+```{r}
+selected_variables_sf <- names(coef(stepwise_forward))
+
+cat("Selected variables in the forward stepwise model:\n")
+print(selected_variables_sf)
+
+aic_forward <- AIC(stepwise_forward)
+bic_forward <- BIC(stepwise_forward)
+
+cat("AIC of forward stepwise model:", aic_forward, "\n")
+cat("BIC of forward stepwise model:", bic_forward, "\n")
+```
+
+**Response to 3ai**: 
+
+Selected variables are: Intercept, MentalHealthImpactneutral, MentalHealthImpactpositive, JobSatisfaction, RemoteWorkHoursPerWeek, TechToolsUsed, CountryCanada, CountryGermany, CountryIndia, CountryUK, CountryUSA.
+
+AIC of the forward stepwise model is 441.9328 and the BIC of the forward stepwise model is 493.4636.
+
+**3b) (2 points) Backward Stepwise Regression**
+
+```{r}
+# Backward stepwise regression
+stepwise_backward <- step(null_model, direction = "backward")
+
+summary(stepwise_backward)
+```
+
+**(3bi) (1 point) What are the selected variables, AIC, and BIC of Backward Stepwise model?**
+
+```{r}
+selected_variables_backward <- names(coef(stepwise_backward))
+
+aic_backward <- AIC(stepwise_backward)
+bic_backward <- BIC(stepwise_backward)
+
+cat("Selected variables in the backward stepwise model:\n")
+print(selected_variables_backward)
+cat("\nAIC of backward stepwise model:", aic_backward, "\n")
+cat("BIC of backward stepwise model:", bic_backward, "\n")
+
+```
+
+**Response to 3bi**: 
+
+Selected variables: Intercept, CountryCanada, CountryGermany, CountryIndia, CountryUK, CountryUSA, RemoteWorkHoursPerWeek, JobSatisfaction, TechToolsUsed, MentalHealthImpactneutral, MentalHealthImpactpositive.
+
+AID of backward stepwise model is 441.9328 and the BIC of the backward stepwise model is 493.4636
+
+**3c) (2 points) Perform forward-backward stepwise regression model using AIC, starting with minimal model. Call it *stepwise_forward_backward*.**
+
+```{r}
+stepwise_forward_backward <- step(full_model, direction = "both")
+
+summary(stepwise_forward_backward)
+```
+
+**3ci) (1 point) What are the selected variables, AIC, and BIC of Forward-Backward Stepwise model?**
+```{r}
+selected_variables_forward_backward <- names(coef(stepwise_forward_backward))
+
+aic_forward_backward <- AIC(stepwise_forward_backward)
+bic_forward_backward <- BIC(stepwise_forward_backward)
+
+cat("Selected variables in the forward-backward stepwise model:\n")
+print(selected_variables_forward_backward)
+cat("\nAIC of forward-backward stepwise model:", aic_forward_backward, "\n")
+cat("BIC of forward-backward stepwise model:", bic_forward_backward, "\n")
+
+```
+
+**Response to 3ci**: 
+
+Selected variables are: Intercept, MentalHealthImpactneutral, MentalHealthImpactpositive, JobSatisfaction, RemoteWorkHoursPerWeek, TechToolsUsed, CountryCanada, CountryGermany, CountryIndia, CountryUK, CountryUSA
+
+
+AIC of forward-backward stepwise model: 441.9328 and BIC of forward-backward stepwise model: 493.4636 
+
+
+**3d)(1 point) Show the coefficients that are statistically significant at an alpha level of 0.01 based on the stepwise forward-backward regression (stepwise_forward_backward) model summary output.**
+
+```{r}
+summary_output <- summary(stepwise_forward_backward)
+
+coefficients_table <- summary_output$coefficients
+
+significant_coefficients <- coefficients_table[coefficients_table[, "Pr(>|z|)"] < 0.01, ]
+
+cat("Statistically significant coefficients at alpha = 0.01:\n")
+print(significant_coefficients)
+```
+
+**Response to 3d**: 
+
+The statistically significant coefficients are Intercept, MentalHealthImpactpositive, JobSatisfaction, and RemoteHoursPerWeek.
+
+**3e)(2 points) Compare the full logistic regression model (full_model) from Question (2ai) against the reduced model with only the variables selected by the stepwise forward-backward regression (stepwise_forward_backward). What can you conclude from the results using an alpha-level of 0.05?**
+
+```{r}
+# Likelihood ratio test
+lrt_result <- anova(stepwise_forward_backward, full_model, test = "LRT")
+
+cat("Likelihood Ratio Test (LRT) Results:\n")
+print(lrt_result)
+```
+
+**Response to question (3e)**:
+
+The reduced model is not significantly different from the full model at alpha = 0.05, the reduced model provides an adequate fit.
+
+## Question 4: Regularized variable selection (16 total points)
+
+**4a)(4 points) Perform Ridge regression on the dataset "trainData". Call it *ridge_model*. Answer the following questions for this model:**
+
+**i) Use cv.glmnet() to find the lambda value that minimizes the cross-validation error using 10 fold CV and state the value of the optimal lambda.**
+
+```{r}
+# Load necessary library
+library(glmnet)
+
+x <- model.matrix(RemoteWorkPreference ~ . - 1, data = trainData) # predictors
+y <- trainData$RemoteWorkPreference # response
+
+# Ridge regression w/ cv
+ridge_model <- cv.glmnet(
+  x, y, 
+  alpha = 0,  # alpha = 0 for Ridge Regression
+  family = "binomial", 
+  nfolds = 10
+)
+
+optimal_lambda <- ridge_model$lambda.min
+
+cat("The optimal lambda that minimizes cross-validation error is:", optimal_lambda, "\n")
+```
+
+**ii) Fit the model with 100 values for lambda. Extract the coefficients using the optimal lambda selected in (i), and list the coefficients that are selected.**
+
+```{r}
+# Fit the Ridge regression model with 100 lambda values
+ridge_fit <- glmnet(
+  x, y, 
+  alpha = 0,  # Ridge regression
+  family = "binomial", 
+  lambda = ridge_model$lambda # Use cv.glmnet's lambda sequence
+)
+
+coefficients_at_optimal <- coef(ridge_fit, s = optimal_lambda)
+
+# Convert coefficients to a df to extract/filter more easily
+coefficients_df <- as.data.frame(as.matrix(coefficients_at_optimal))
+colnames(coefficients_df) <- "Coefficient"
+coefficients_df$Variable <- rownames(coefficients_df)
+rownames(coefficients_df) <- NULL
+
+# Filter for non-zero coef
+non_zero_coefficients <- coefficients_df %>%
+  filter(Coefficient != 0)
+
+cat("Non-zero coefficients at the optimal lambda:\n")
+print(non_zero_coefficients)
+```
+
+**iii) Plot the coefficient path and place the optimal lambda from (i) on the plot. Analyze the plot and comment on which coefficients are shrunk to zero at the optimal lambda.**
+
+```{r}
+# Plot the coefficient path
+plot(ridge_model, xvar = "lambda", lwd = 2)
+
+# Add a vertical line for optimal lambda
+abline(v = log(optimal_lambda), col = "red", lty = 2, lwd = 2)
+
+#title("Coefficient Path for Ridge Regression")
+```
+```{r}
+coefficients_at_optimal <- coef(ridge_fit, s = optimal_lambda)
+
+# Convert coef to a data frame
+coefficients_df <- as.data.frame(as.matrix(coefficients_at_optimal))
+colnames(coefficients_df) <- "Coefficient"
+coefficients_df$Variable <- rownames(coefficients_df)
+rownames(coefficients_df) <- NULL
+
+# Sort coefficients by magnitude
+sorted_coefficients <- coefficients_df %>%
+  arrange(desc(abs(Coefficient)))
+
+# Coef that remain relatively large
+cat("Coefficients that remain relatively large at the optimal lambda:\n")
+print(sorted_coefficients %>% filter(abs(Coefficient) > 0.1)) # Adjust threshold if needed
+
+# Coef shrunk close to zerio
+cat("\nCoefficients shrunk close to zero at the optimal lambda:\n")
+print(sorted_coefficients %>% filter(abs(Coefficient) <= 0.1)) # Adjust threshold if needed
+
+```
+
+**Response to Q4a**:
+
+
+The Ridge regression plot demonstrates that the method shrinks coefficients for less important predictors close to zero (the second dataframe from the code block above), but it does not perform variable selection. The coefficients that remain relatively large at the optimal $\lambda$ (the first dataframe above) are the most relevant predictors for explaining the response variable. 
+
+**4b)(4 points) Perform group lasso using the dataset trainData. Call it *group_lasso_model*. Create the following groups below for your model.**
+
+**Note: Only these 5 variables/3 groups should be used in your group lasso model. "gglasso" function must be used, "grpreg" function should not be used**
+
+**Group1: Age**
+
+**Group2: ExperienceYears and RemoteWorkHoursPerWeek**
+
+**Group3: JobSatisfaction and TechToolsUsed**
+
+**Answer the following questions:**
+
+**i) Find the lambda value that minimizes the cross-validation error using 10 fold CV and state the value of the optimal lambda.**
+
+```{r}
+library(gglasso)
+
+group_var <- trainData[, c("Age", "ExperienceYears", "RemoteWorkHoursPerWeek", "JobSatisfaction", "TechToolsUsed")]
+group_index <- c(1, 2, 2, 3, 3)  
+
+response <- ifelse(trainData$RemoteWorkPreference == 0, -1, 1)
+
+# Convert predictors to matrix
+x <- as.matrix(group_var)
+y <- response  # Encoded response variable
+
+# Perform group lasso with 10-fold cv
+group_lasso_model <- cv.gglasso(
+  x = x,
+  y = y,
+  group = group_index,
+  loss = "logit",  # Logistic regression
+  nfolds = 10
+)
+
+optimal_lambda_group <- group_lasso_model$lambda.min
+
+cat("The optimal lambda that minimizes cross-validation error is:", optimal_lambda_group, "\n")
+```
+
+**ii) Fit the model with 100 values for lambda. Extract the coefficients using the optimal lambda selected in (i), and list the coefficients that are selected.**
+
+```{r}
+group_lasso_fit <- gglasso(
+  x = x,
+  y = y,
+  group = group_index,
+  lambda = group_lasso_model$lambda,  # Use the same lambda sequence from cv.gglasso
+  loss = "logit"
+)
+
+coefficients_at_optimal <- coef(group_lasso_fit, s = optimal_lambda_group)
+
+# Convert coefficients to a df
+coefficients_df <- as.data.frame(as.matrix(coefficients_at_optimal))
+colnames(coefficients_df) <- "Coefficient"
+coefficients_df$Variable <- rownames(coefficients_df)
+rownames(coefficients_df) <- NULL
+
+# Non-zero coef
+non_zero_coefficients <- coefficients_df %>%
+  filter(Coefficient != 0)
+
+cat("Non-zero coefficients at the optimal lambda:\n")
+print(non_zero_coefficients)
+```
+
+**iii) Plot the coefficient path and place the optimal lambda from (i) on the plot. Analyze the plot and comment on which coefficients are shrunk to zero at the optimal lambda.**
+
+```{r}
+plot(group_lasso_fit, xvar = "lambda", label = TRUE)
+
+# line for optimal lambda
+abline(v = log(optimal_lambda), col = "red", lty = 2, lwd = 2)
+
+title("Coefficient Path for Group Lasso")
+
+coef_at_optimal_lambda <- coef(group_lasso_fit, s = optimal_lambda)
+
+# convert to df
+coefficients_df <- as.data.frame(as.matrix(coef_at_optimal_lambda))
+colnames(coefficients_df) <- "Coefficient"
+coefficients_df$Variable <- rownames(coefficients_df)
+rownames(coefficients_df) <- NULL
+
+var_coefficients <- coefficients_df %>% filter(Coefficient != 0)
+
+print(var_coefficients)
+```
+
+**Responses to question (4b)**
+
+At the optimal $\lambda$ (red dashed line), the group lasso model selects a few coefficients that remain relatively large, indicating their strong predictive power. Variables like those in Group 3 (e.g., JobSatisfaction and TechToolsUsed) contribute significantly to the response, while others, especially some in Group 2 (i.e., ExperienceYears), are shrunk close to zero, suggesting minimal influence. As $\lambda$ increases, coefficients across all groups shrink toward zero due to the group-level penalty, with less important groups being penalized more heavily. The group lasso approach ensures that important groups are retained while irrelevant groups are effectively excluded, leading to a simpler and more interpretable model.
+
+**4c) (4 points) Perform Regular Lasso using the dataset trainData. Call it *lasso_model*.**
+
+**i) Use cv.glmnet() to find the lambda value that minimizes the cross-validation error using 10-fold CV and state the value of the optimal lambda.**
+
+```{r}
+library(glmnet)
+
+x <- model.matrix(RemoteWorkPreference ~ . - 1, data = trainData) # Predictors
+y <- trainData$RemoteWorkPreference # Response
+
+lasso_model <- cv.glmnet(
+  x = x, 
+  y = y, 
+  alpha = 1,  
+  family = "binomial",
+  nfolds = 10 
+)
+
+optimal_lambda_reg_lasso <- lasso_model$lambda.min
+
+cat("The optimal lambda that minimizes cross-validation error is:", optimal_lambda_reg_lasso, "\n")
+```
+
+**ii) Fit the model with 100 values for lambda. Extract the coefficients using the optimal lambda selected in (i), and list the coefficients that are selected.**
+
+```{r}
+lasso_fit <- glmnet(x, y, alpha = 1, family = "binomial", lambda = lasso_model$lambda)
+
+coefficients_at_optimal_lambda <- coef(lasso_fit, s = optimal_lambda)
+
+coefficients_df <- as.data.frame(as.matrix(coefficients_at_optimal_lambda))
+colnames(coefficients_df) <- "Coefficient"
+coefficients_df$Variable <- rownames(coefficients_df)
+rownames(coefficients_df) <- NULL
+
+non_zero_coefficients <- coefficients_df %>% filter(Coefficient != 0)
+
+cat("Non-zero coefficients at the optimal lambda:\n")
+print(non_zero_coefficients)
+
+```
+
+**iii) Plot the coefficient path and place the optimal lambda from (i) on the plot. Analyze the plot and comment on which coefficients are shrunk to zero at the optimal lambda.**
+
+```{r}
+plot(lasso_fit, xvar = "lambda", label = TRUE)
+
+abline(v = log(optimal_lambda), col = "red", lty = 2, lwd = 2)
+
+title("Coefficient Path for Lasso Regression")
+
+coefficients_at_optimal <- coef(lasso_fit, s = optimal_lambda)
+
+coefficients_df <- as.data.frame(as.matrix(coefficients_at_optimal))
+colnames(coefficients_df) <- "Coefficient"
+coefficients_df$Variable <- rownames(coefficients_df)
+rownames(coefficients_df) <- NULL
+
+non_zero_coefficients <- coefficients_df %>% filter(Coefficient != 0)
+
+cat("\nCoefficients that remain non-zero at the optimal lambda:\n")
+print(non_zero_coefficients)
+
+cat("\nCoefficients shrunk to zero at the optimal lambda:\n")
+print(coefficients_df %>% filter(Coefficient == 0))
+
+```
+
+**Responses to question (4c)**:
+
+At the optimal $\lambda$ (red dashed line), the Lasso regression model selects a subset of important variables by shrinking irrelevant coefficients to exactly zero. This demonstrates Lasso's ability to perform variable selection, creating a sparse and interpretable model. Coefficients that remain non-zero at this point represent the most influential predictors, while less relevant variables are excluded. Overall, the model balances simplicity and predictive power by focusing only on the strongest predictors.
+
+**4d) (4 points) Perform Elastic Net regression on the dataset trainData giving equal weight to both lasso and ridge penalties. Call it *elastic_net_model*.**
+
+**i) Use cv.glmnet() to find the lambda value that minimizes the cross-validation error using 10-fold CV and state the value of the optimal lambda.**
+
+```{r}
+library(glmnet)
+
+elastic_net_model <- cv.glmnet(
+  x = x,
+  y = y,
+  alpha = 0.5,
+  family = "binomial",
+  nfolds = 10  
+)
+
+# Foptimal lambda
+optimal_lambda <- elastic_net_model$lambda.min
+
+cat("The optimal lambda that minimizes cross-validation error is:", optimal_lambda, "\n")
+```
+
+**ii) Fit the model with 100 values for lambda. Extract the coefficients using the optimal lambda selected in (i), and list the coefficients that are selected.**
+
+```{r}
+elastic_net_fit <- glmnet(
+  x = x,
+  y = y,
+  alpha = 0.5,  
+  family = "binomial", 
+  lambda = elastic_net_model$lambda 
+)
+
+coefficients_at_optimal <- coef(elastic_net_fit, s = optimal_lambda)
+
+coefficients_df <- as.data.frame(as.matrix(coefficients_at_optimal))
+colnames(coefficients_df) <- "Coefficient"
+coefficients_df$Variable <- rownames(coefficients_df)
+rownames(coefficients_df) <- NULL
+
+non_zero_coefficients <- coefficients_df %>% filter(Coefficient != 0)
+
+cat("Non-zero coefficients at the optimal lambda:\n")
+print(non_zero_coefficients)
+```
+
+**iii) Plot the coefficient path and place the optimal lambda from (i) on the plot. Analyze the plot and comment on which coefficients are shrunk to zero at the optimal lambda.**
+
+```{r}
+plot(elastic_net_fit, xvar = "lambda", label = TRUE)
+
+abline(v = log(optimal_lambda), col = "red", lty = 2, lwd = 2)
+
+title("Coefficient Path for Elastic Net Regression")
+
+coefficients_at_optimal <- coef(elastic_net_fit, s = optimal_lambda)
+
+coefficients_df <- as.data.frame(as.matrix(coefficients_at_optimal))
+colnames(coefficients_df) <- "Coefficient"
+coefficients_df$Variable <- rownames(coefficients_df)
+rownames(coefficients_df) <- NULL
+
+non_zero_coefficients <- coefficients_df %>% filter(Coefficient != 0)
+
+cat("\nCoefficients that remain non-zero at the optimal lambda:\n")
+print(non_zero_coefficients)
+
+cat("\nCoefficients shrunk to zero at the optimal lambda:\n")
+print(coefficients_df %>% filter(Coefficient == 0))
+
+```
+
+**Responses to question (4d)**:
+
+At the optimal $\lambda$ (red dashed line), the Elastic Net model balances variable selection and coefficient shrinkage. Important predictors retain non-zero coefficients, reflecting their strong influence on the response variable, while irrelevant variables are shrunk to zero and excluded. The Elastic Net combines the strengths of Lasso (sparse variable selection) and Ridge (handling multicollinearity), resulting in a model that is both interpretable and robust. This balance ensures the model focuses on key predictors while reducing the impact of noise and redundant variables.
+
+## Question 5: Prediction (20 total points)
+
+**Note: Use "testData" for all questions in Q5**
+
+**5a)(9 points) Using testData and with the previously built models in Q2-4, predict the probability of remote work being preferred and output the average of these probabilities for each of the models below:**
+
+**i) Full Logistic regression model from question 2a (full_model)**
+
+**ii) Decision tree model from question 2d (decision_tree_model)**
+
+**iii) Stepwise forward model from question 3a (stepwise_forward)**
+
+**iv) Stepwise backward model from question 3b (stepwise_backward)**
+
+**v) Stepwise forward-backward model from question 3c (stepwise_forward_backward)**
+
+**vi) Ridge regression model from question 4a (ridge_model)**
+
+**vii) Group Lasso model from question 4b (group_lasso_model)**
+
+**viii) Regular Lasso from question 4c (lasso_model)**
+
+**ix) Elastic Net model from question 4d (elastic_net_model)**
+
+
+```{r}
+# Prep predictors
+test_x <- model.matrix(RemoteWorkPreference ~ . - 1, data = testData) 
+test_y <- testData$RemoteWorkPreference 
+
+# initial df for results
+results <- data.frame(Model = character(), Avg_Probability = numeric())
+
+# i) Full
+full_model_pred <- predict(full_model, newdata = testData, type = "response")
+results <- rbind(results, data.frame(Model = "Full Logistic Regression", Avg_Probability = mean(full_model_pred)))
+
+# ii) Decision tree
+decision_tree_pred <- predict(decision_tree_model, newdata = testData, type = "prob")[, 2]
+results <- rbind(results, data.frame(Model = "Decision Tree", Avg_Probability = mean(decision_tree_pred)))
+
+# iii) Stepwise forward
+stepwise_forward_pred <- predict(stepwise_forward, newdata = testData, type = "response")
+results <- rbind(results, data.frame(Model = "Stepwise Forward", Avg_Probability = mean(stepwise_forward_pred)))
+
+# iv) Stepwise backward
+stepwise_backward_pred <- predict(stepwise_backward, newdata = testData, type = "response")
+results <- rbind(results, data.frame(Model = "Stepwise Backward", Avg_Probability = mean(stepwise_backward_pred)))
+
+# v) Stepwise forward-backward/both
+stepwise_forward_backward_pred <- predict(stepwise_forward_backward, newdata = testData, type = "response")
+results <- rbind(results, data.frame(Model = "Stepwise Forward-Backward", Avg_Probability = mean(stepwise_forward_backward_pred)))
+
+# vi) Ridge regression
+ridge_pred <- predict(ridge_model, s = ridge_model$lambda.min, newx = test_x, type = "response")
+results <- rbind(results, data.frame(Model = "Ridge Regression", Avg_Probability = mean(ridge_pred)))
+
+# vii) Group lasso
+
+# viii) Regular lasso
+lasso_pred <- predict(lasso_model, s = lasso_model$lambda.min, newx = test_x, type = "response")
+results <- rbind(results, data.frame(Model = "Regular Lasso", Avg_Probability = mean(lasso_pred)))
+
+# ix) Elastic net
+elastic_net_pred <- predict(elastic_net_model, s = elastic_net_model$lambda.min, newx = test_x, type = "response")
+results <- rbind(results, data.frame(Model = "Elastic Net", Avg_Probability = mean(elastic_net_pred)))
+
+print(results)
+```
+
+**Response to question 5a:**
+
+Please see the output from the above code
+
+**5b)(5 points) Using the probabilities from Q5a, obtain the classifications of remote work being preferred for all nine models using a threshold of 0.3. Show the last ten classification rows for all the models.**
+
+```{r}
+classification_results <- data.frame(Row = seq_len(nrow(testData)))
+
+classification_results$Full_Logistic <- ifelse(full_model_pred >= 0.3, 1, 0)
+classification_results$Decision_Tree <- ifelse(decision_tree_pred >= 0.3, 1, 0)
+classification_results$Stepwise_Forward <- ifelse(stepwise_forward_pred >= 0.3, 1, 0)
+classification_results$Stepwise_Backward <- ifelse(stepwise_backward_pred >= 0.3, 1, 0)
+classification_results$Stepwise_Forward_Backward <- ifelse(stepwise_forward_backward_pred >= 0.3, 1, 0)
+
+classification_results$Ridge <- ifelse(ridge_pred >= 0.3, 1, 0)
+classification_results$Ridge <- as.numeric(classification_results$Ridge)
+
+# classification_results$Group_Lasso <- ifelse(group_lasso_prob >= 0.3, 1, 0)
+
+classification_results$Lasso <- ifelse(lasso_pred >= 0.3, 1, 0)
+classification_results$Lasso <- as.numeric(classification_results$Lasso)
+
+classification_results$Elastic_Net <- ifelse(elastic_net_pred >= 0.3, 1, 0)
+
+classification_results$Lasso <- as.numeric(classification_results$Lasso)
+classification_results$Elastic_Net <- as.numeric(classification_results$Elastic_Net)
+
+tail(classification_results, 10)
+```
+
+**5c)(6 points) i) Using the classifications from Q5b, create a confusion matrix and output the classification evaluation metrics for all nine models.**
+
+**ii) What metric is used to identify the true positive rate? Which model shows the highest value for this metric?**
+
+```{r}
+true_values <- testData$RemoteWorkPreference
+
+evaluation_metrics <- data.frame(
+  Model = character(),
+  Accuracy = numeric(),
+  Precision = numeric(),
+  Recall = numeric(),  # true positive rate (TPR)
+  F1_Score = numeric()
+)
+
+compute_metrics <- function(conf_matrix) {
+  accuracy <- sum(diag(conf_matrix)) / sum(conf_matrix)
+  precision <- conf_matrix[2, 2] / sum(conf_matrix[, 2]) 
+  recall <- conf_matrix[2, 2] / sum(conf_matrix[2, ])   
+  f1_score <- 2 * ((precision * recall) / (precision + recall))
+  return(c(accuracy, precision, recall, f1_score))
+}
+
+model_classifications <- list(
+  Full_Logistic = classification_results$Full_Logistic,
+  Decision_Tree = classification_results$Decision_Tree,
+  Stepwise_Forward = classification_results$Stepwise_Forward,
+  Stepwise_Backward = classification_results$Stepwise_Backward,
+  Stepwise_Forward_Backward = classification_results$Stepwise_Forward_Backward,
+  Ridge = classification_results$Ridge,
+  Lasso = classification_results$Lasso,
+  Elastic_Net = classification_results$Elastic_Net
+)
+
+for (model_name in names(model_classifications)) {
+  predicted <- model_classifications[[model_name]]
+  
+  predicted <- factor(predicted, levels = c(0, 1))
+  true_values <- factor(true_values, levels = c(0, 1))
+  
+  conf_matrix <- table(Predicted = predicted, Actual = true_values)
+  
+  if (all(dim(conf_matrix) == c(2, 2))) {
+    metrics <- compute_metrics(conf_matrix)
+    evaluation_metrics <- rbind(evaluation_metrics, data.frame(
+      Model = model_name,
+      Accuracy = metrics[1],
+      Precision = metrics[2],
+      Recall = metrics[3],
+      F1_Score = metrics[4]
+    ))
+  } else {
+    warning(paste("Confusion matrix for model", model_name, "is incomplete."))
+  }
+}
+
+print(evaluation_metrics)
+```
+
+
+**Response to question 5c:**
+
+```{r}
+highest_tpr_model <- evaluation_metrics[which.max(evaluation_metrics$Recall), ]
+cat("The model with the highest true positive rate is (i,e., recall:", highest_tpr_model$Model, 
+    "with a TPR of:", highest_tpr_model$Recall, "\n")
+```
+
+The model with the highest Recall is the most effective at identifying actual positive cases (e.g., correctly predicting individuals who prefer remote work).
+
+## Question 6: Research Question (4 total points)
+
+**6a)(2 points) Research the glmnet function and explain all the arguments that goes into the function. What argument does glmnet use to scale your data?**
+
+**Response to question 6a:**
+
+The standardize argument is used to scale predictors.
+
+**6b)(2 points) Write (with explanations) separate R codes where model.matrix() is used in pre-processing and another where as.matrix() is used in pre-processing on the R built-in “mtcars” dataset (since it has both quantitative and qualitative prediction variables). Build two separate logistic regression models using those pre-processing techniques where we predict whether a car has an automatic or manual transmission ('am' variable as the response variable) with 'mpg' (quantitative variable), 'hp' (quantitative variable), and 'wt' (quantitative variable) as predictors. Using logistic regression with glm(), compare and explain any similarities and/or differences between the model summary outputs for these 2 models.**
+
+**Response to question 6b:**
+
+```{r}
+mtcars$am <- as.factor(mtcars$am)
+model_matrix <- model.matrix(am ~ mpg + hp + wt, data = mtcars)
+logit_model_matrix <- glm(am ~ mpg + hp + wt, data = mtcars, family = binomial)
+summary(logit_model_matrix)
+```
+```{r}
+y_as_matrix <- as.numeric(mtcars$am) - 1
+X_as_matrix <- as.matrix(mtcars[, c("mpg", "hp", "wt")])
+X_as_matrix <- cbind(Intercept = 1, X_as_matrix)
+logit_as_matrix <- glm(y_as_matrix ~ X_as_matrix - 1, family = binomial)
+summary(logit_as_matrix)
+```
+The first approach (model.matrix()) is more straightforward and ensures proper handling of predictors, making it ideal for general use. The second approach (as.matrix()) provides more control but requires careful manual pre-processing. Both should lead to the same model when implemented correctly.
+**This is the End of the Homework**
