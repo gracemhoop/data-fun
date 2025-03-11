@@ -66,10 +66,10 @@ The dataset (remote_work_trends.csv) includes demographic, professional, and psy
 # Searchable_File_Counts_SQL.sql
 ### Purpose:
 The analysis was conducted in order to find any discrepancies in files moving through a data pipeline. The pipeline layers are:
-    - Acquisition
-    - Ingestion (raw and messy)
-    - Standardization (flattened and structured)
-    - Shared (separated into different tables for downstream users)
+- Acquisition
+- Ingestion (raw and messy)
+- Standardization (flattened and structured)
+- Shared (separated into different tables for downstream users)
 
 These layers contain claims, remits, and physician data, but lack consistent keys to link across them. The only place with file date information is an external acquisition table. To verify expected data availabilities, I extracted and standardized file names from four different fields across layers, then joined them back to the acquisition table. An example approach for one layer was joining a shared table on stripped file paths, grouping by year, and counting distinct files—accounting for overlaps due to multiple remits/claims per file. This revealed that only 35% of 2023 data were available, prompting me to contact our ETL team, which quickly led to a solution. This analysis was created in Databricks, incorporating user-defined variables (parameters, denoted by `{}`) so future evaluations can be easily run with different data feeds and clients.
 
