@@ -57,11 +57,11 @@ The dataset (remote_work_trends.csv) includes demographic, professional, and psy
         - True Positive Rate (Recall) analysis to determine the best model.
           
 ### Key Findings
-    - Employees with higher job satisfaction and more remote work hours were significantly more likely to prefer remote work.
-    - Company size influenced preference—employees in large companies were more inclined toward remote work.
-    - Mental health impact (positive or neutral) was a strong predictor of remote work preference.
-    - Lasso and Elastic Net regression identified the most influential predictors while maintaining model simplicity.
-    - Decision trees and logistic regression provided interpretable models, while regularization methods improved predictive performance.
+- Employees with higher job satisfaction and more remote work hours were significantly more likely to prefer remote work.
+- Company size influenced preference—employees in large companies were more inclined toward remote work.
+- Mental health impact (positive or neutral) was a strong predictor of remote work preference.
+- Lasso and Elastic Net regression identified the most influential predictors while maintaining model simplicity.
+- Decision trees and logistic regression provided interpretable models, while regularization methods improved predictive performance.
 
 # Searchable_File_Counts_SQL.sql
 ### Purpose:
