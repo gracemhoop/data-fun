@@ -24,11 +24,11 @@ This project applies logistic regression and machine learning models to analyze 
 
 ### Dataset Overview:
 The dataset (remote_work_trends.csv) includes demographic, professional, and psychological factors that may influence remote work preference. Key variables include:
-    - Demographics: Age, gender, country
-    - Job-related factors: Job role, experience years, salary, company size
-    - Remote work experience: Weekly remote work hours, tech tools used
-    - Psychological factors: Job satisfaction, productivity levels, mental health impact
-    - Target variable: RemoteWorkPreference (Binary: 1 = prefers remote work, 0 = does not)
+- Demographics: Age, gender, country
+- Job-related factors: Job role, experience years, salary, company size
+- Remote work experience: Weekly remote work hours, tech tools used
+- Psychological factors: Job satisfaction, productivity levels, mental health impact
+- Target variable: RemoteWorkPreference (Binary: 1 = prefers remote work, 0 = does not)
 
 ### Methodology: 
 1. Exploratory Data Analysis (EDA)
