@@ -6,26 +6,6 @@
     - Used to test data quality of outgoing reports built.
 3. [eligibility_testing_app.py](https://github.com/gracemhoop/data-fun/blob/main/eligibility_testing_app.py)
     - Automation of testing incoming eligibility data.
-   
-# [FinanceAnalysis.ipynb](https://github.com/gracemhoop/data-fun/blob/main/FinanceAnalysis.ipynb): 
-### Analysis done in 2024 for Chico Green City Coalition for Chico's city council elections. The information used to determine this is publicly available. This analysis was used to determine:
-1. Who is funding the candidates?
-    - What are the top donor industries (e.g., real estate, construction, PACs)?
-    - How much funding comes from local vs. out-of-town donors?
-    - Are there any large individual contributors who may have significant influence?
-2. Are there any potential conflicts of interest?
-    - Are candidates receiving large donations from companies or individuals that have pending business with the city (e.g., developers, contractors, lobbyists)?
-    - Does the candidate’s policy platform align with the interests of their major donors?
-    - Are donations concentrated in specific industries, signaling potential favoritism?
-3. How does money impact competitiveness?
-    - Is there a correlation between fundraising and polling numbers?
-4. Is there a difference in funding between incumbents and challengers?
-    - Do incumbents receive more institutional money compared to challengers?
-    - Are first-time candidates relying more on small-dollar donations?
-5. What trends exist over time?
-    - Are there shifts in donor priorities (e.g., rise of environmental PACs, more small-dollar grassroots donations)?
-    - Is Party A or Party B consistently raising more?
-      
 
 # [Remote work trends analysis.Rmd](https://github.com/gracemhoop/data-fun/blob/main/Remote%20work%20trends%20analysis.Rmd)
 ### Objective:
@@ -71,6 +51,29 @@ The dataset (remote_work_trends.csv) includes demographic, professional, and psy
 - Mental health impact (positive or neutral) was a strong predictor of remote work preference.
 - Lasso and Elastic Net regression identified the most influential predictors while maintaining model simplicity.
 - Decision trees and logistic regression provided interpretable models, while regularization methods improved predictive performance.
+
+# [FinanceAnalysis.ipynb](https://github.com/gracemhoop/data-fun/blob/main/FinanceAnalysis.ipynb): 
+### Analysis done in 2024 for Chico Green City Coalition for Chico's city council elections. The information used to determine this is publicly available. This analysis was used to determine:
+1. Who is funding the candidates?
+    - What are the top donor industries (e.g., real estate, construction, PACs)?
+    - How much funding comes from local vs. out-of-town donors?
+    - Are there any large individual contributors who may have significant influence?
+2. Are there any potential conflicts of interest?
+    - Are candidates receiving large donations from companies or individuals that have pending business with the city (e.g., developers, contractors, lobbyists)?
+    - Does the candidate’s policy platform align with the interests of their major donors?
+    - Are donations concentrated in specific industries, signaling potential favoritism?
+3. How does money impact competitiveness?
+    - Is there a correlation between fundraising and polling numbers?
+4. Is there a difference in funding between incumbents and challengers?
+    - Do incumbents receive more institutional money compared to challengers?
+    - Are first-time candidates relying more on small-dollar donations?
+5. What trends exist over time?
+    - Are there shifts in donor priorities (e.g., rise of environmental PACs, more small-dollar grassroots donations)?
+    - Is Party A or Party B consistently raising more?
+
+# [row_level_validation_builder.html](https://github.com/gracemhoop/data-fun/blob/main/row_level_validation_builder.html)
+### Purpose:
+This HTML app was a fun little project I did to put fields in a format that is required for building data validations. While it is not particularly useful for use outside a specific instance, it did assist with automation in building formulas and making lists out of copy/pasted Excel column values. This could be done within Excel itself, but building an HTML app sounded like good practice and something fun to do.
 
 # [Searchable_File_Counts_SQL.sql](https://github.com/gracemhoop/data-fun/blob/main/Searchable_File_Counts_SQL.sql)
 ### Purpose:
