@@ -1,6 +1,6 @@
 # Data Testing Applications:
 ### Data testing applications written with the assistance of Claude, used to automate data testing. Data testing includes validating financial fields, adjudication, data quality, and more.
-1. medical_rx_testing_app.py
+1. [medical_rx_testing_app.py](https://github.com/gracemhoop/data-fun/blob/main/medical_rx_testing_app.py)
     - Automation of testing data quality of Medical and Rx claims.
 2. egress_testing_app.py
     - Used to test data quality of outgoing reports built.
