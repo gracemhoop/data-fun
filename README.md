@@ -1,3 +1,12 @@
+# Data Testing Applications Folder:
+### Data testing applications written with the assistance of Claude, used to automate data testing. Data testing includes validating financial fields, adjudication, data quality, and more.
+1. medical_rx_testing_app.py
+    - Automation of testing data quality of Medical and Rx claims.
+2. egress_testing_app.py
+    - Used to test data quality of outgoing reports built.
+3. eligibility_testing_app.py
+    - Automation of testing incoming eligibility data.
+   
 # FinanceAnalysis.ipynb: 
 ### Analysis done in 2024 for Chico Green City Coalition for Chico's city council elections. The information used to determine this is publicly available. This analysis was used to determine:
 1. Who is funding the candidates?
@@ -10,10 +19,10 @@
     - Are donations concentrated in specific industries, signaling potential favoritism?
 3. How does money impact competitiveness?
     - Is there a correlation between fundraising and polling numbers?
-5. Is there a difference in funding between incumbents and challengers?
+4. Is there a difference in funding between incumbents and challengers?
     - Do incumbents receive more institutional money compared to challengers?
     - Are first-time candidates relying more on small-dollar donations?
-6. What trends exist over time?
+5. What trends exist over time?
     - Are there shifts in donor priorities (e.g., rise of environmental PACs, more small-dollar grassroots donations)?
     - Is Party A or Party B consistently raising more?
       
