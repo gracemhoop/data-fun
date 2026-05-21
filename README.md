@@ -2,12 +2,12 @@
 ### Data testing applications written with the assistance of Claude, used to automate data testing. Data testing includes validating financial fields, adjudication, data quality, and more.
 1. [medical_rx_testing_app.py](https://github.com/gracemhoop/data-fun/blob/main/medical_rx_testing_app.py)
     - Automation of testing data quality of Medical and Rx claims.
-2. egress_testing_app.py
+2. [egress_testing_app.py](https://github.com/gracemhoop/data-fun/blob/main/egress_testing_app.py)
     - Used to test data quality of outgoing reports built.
-3. eligibility_testing_app.py
+3. [eligibility_testing_app.py](https://github.com/gracemhoop/data-fun/blob/main/eligibility_testing_app.py)
     - Automation of testing incoming eligibility data.
    
-# FinanceAnalysis.ipynb: 
+# [FinanceAnalysis.ipynb](https://github.com/gracemhoop/data-fun/blob/main/FinanceAnalysis.ipynb): 
 ### Analysis done in 2024 for Chico Green City Coalition for Chico's city council elections. The information used to determine this is publicly available. This analysis was used to determine:
 1. Who is funding the candidates?
     - What are the top donor industries (e.g., real estate, construction, PACs)?
@@ -27,7 +27,7 @@
     - Is Party A or Party B consistently raising more?
       
 
-# Remote work trends analysis.Rmd
+# [Remote work trends analysis.Rmd](https://github.com/gracemhoop/data-fun/blob/main/Remote%20work%20trends%20analysis.Rmd)
 ### Objective:
 This project applies logistic regression and machine learning models to analyze employee preferences for remote work post-pandemic. The study leverages real-world workforce data to identify key factors influencing remote work adoption.
 
@@ -72,7 +72,7 @@ The dataset (remote_work_trends.csv) includes demographic, professional, and psy
 - Lasso and Elastic Net regression identified the most influential predictors while maintaining model simplicity.
 - Decision trees and logistic regression provided interpretable models, while regularization methods improved predictive performance.
 
-# Searchable_File_Counts_SQL.sql
+# [Searchable_File_Counts_SQL.sql](https://github.com/gracemhoop/data-fun/blob/main/Searchable_File_Counts_SQL.sql)
 ### Purpose:
 The analysis was conducted in order to find any discrepancies in files moving through a data pipeline. The pipeline layers are:
 - Acquisition
@@ -82,6 +82,6 @@ The analysis was conducted in order to find any discrepancies in files moving th
 
 These layers contain claims, remits, and physician data, but lack consistent keys to link across them. The only place with file date information is an external acquisition table. To verify expected data availabilities, I extracted and standardized file names from four different fields across layers, then joined them back to the acquisition table. An example approach for one layer was joining a shared table on stripped file paths, grouping by year, and counting distinct files—accounting for overlaps due to multiple remits/claims per file. This revealed that only 35% of 2023 data were available, prompting me to contact our ETL team, which quickly led to a solution. This analysis was created in Databricks, incorporating user-defined variables (parameters, denoted by `{}`) so future evaluations can be easily run with different data feeds and clients.
 
-# Status of Client x12 Files.py
+# [Status of Client x12 Files.py](https://github.com/gracemhoop/data-fun/blob/main/Status%20of%20Client%20x12%20Files.py)
 ### Purpose: 
 This analysis is necessary during onboarding to determine if a client's data have made it through each data pipeline process. If it is discovered that they do not, the configurations for the pipelines were reviewed and either re-configured or created (if they did not exist).
